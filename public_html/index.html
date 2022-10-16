@@ -9,6 +9,19 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-        <div>TODO: CONTENT HERE</div>
+        <div>
+            <canvas id="GLCanvas" width="640" height="480">
+                Your browser does not support HTML5 canvas
+            </canvas>
+        </div>
+        <script type="text/javascript">
+            // Javascript code here
+            var canvas = document.getElementById("GLCanvas");
+            var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            if (gl != null) {
+                gl.clearColor(0.0, 0.8, 0.0, 1.0) // set colour to be cleared
+                gl.clear(gl.COLOR_BUFFER_BIT); // clear colours
+            }
+        </script>
     </body>
 </html>
