@@ -12,6 +12,9 @@
         <script type="text/javascript" src="src/ShaderSupport.js"></script>
     </head>
     <body onload="doGLDraw();">
+        <canvas id="GLCanvas" width="640" height="480">
+            Your browser does not support HTML5 canvas
+        </canvas>
         <script type="x-shader/x-vertex" id="VertexShader">
             attribute vec3 aSquareVertexPosition;
             void main(void) {

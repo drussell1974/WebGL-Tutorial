@@ -1,6 +1,5 @@
 "use strict"
-var gSquaredVertexBuffer = null;
-
+var gSquareVertexBuffer = null;
 
 function initSquareBuffer() {
     var verticesOfSquare = [
@@ -10,9 +9,9 @@ function initSquareBuffer() {
         -0.5, -0.5, 0.0
     ];
     // Create buffer
-    gSquaredVertexBuffer = gGL.createBuffer();
+    gSquareVertexBuffer = gGL.createBuffer();
     // Activate vertexBuffer
-    gGL.bindBuffer(gGL.ARRAY_BUFFER, gSquaredVertexBuffer);
+    gGL.bindBuffer(gGL.ARRAY_BUFFER, gSquareVertexBuffer);
     // Load vertexOfSquare into vertexBuffer
     gGL.bufferData(gGL.ARRAY_BUFFER, new Float32Array(verticesOfSquare), gGL.STATIC_DRAW);
 }
