@@ -102,8 +102,30 @@ function initBuffers(gl) {
 
   // Now create an array of positions for the square.
 
-  const positions = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
-
+  /* 2D Square */
+  //const positions = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
+  
+  /* 3D Cube */
+  const positions = [
+    // Front face
+    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,  1.0,
+  
+    // Back face
+    -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
+  
+    // Top face
+    -1.0,  1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
+  
+    // Bottom face
+    -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
+  
+    // Right face
+    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0,  1.0,
+  
+    // Left face
+    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
+  ];
+  
   // Now pass the list of positions into WebGL to build the
   // shape. We do this by creating a Float32Array from the
   // JavaScript array, then use it to fill the current buffer.
@@ -180,8 +202,9 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
+  // For 3D object change numCompontents from 2 to 3
   {
-    const numComponents = 2;
+    const numComponents = 3;
     const type = gl.FLOAT;
     const normalize = false;
     const stride = 0;
