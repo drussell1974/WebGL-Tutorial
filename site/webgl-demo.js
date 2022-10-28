@@ -1,9 +1,12 @@
-let squareRotation = 0.0;
+/* 2D Square */
+//let squareRotation = 0.0;
+/* 2D Square */
+let cubeRotation = 0.0;
 
 function main() {
   const canvas = document.querySelector("#glCanvas");
   // Initialize the GL context
-  const gl = canvas.getContext("webgl");
+  const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 
   // Only continue if WebGL is available and working
   if (gl === null) {
@@ -23,7 +26,7 @@ function main() {
 
     varying lowp vec4 vColor;
 
-    void main() {
+    void main(void) {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
       vColor = aVertexColor;
     }
@@ -108,20 +111,20 @@ function initBuffers(gl) {
   /* 3D Cube */
   const positions = [
     // Front face
-    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,  1.0,
-  
+    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+
     // Back face
     -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
-  
+
     // Top face
-    -1.0,  1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
-  
+    -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
+
     // Bottom face
     -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
-  
+
     // Right face
-    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0,  1.0,
-  
+    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
+
     // Left face
     -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
   ];
@@ -166,9 +169,35 @@ function initBuffers(gl) {
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
+  /* 3D Cube */
+  // Build the element array buffer; this specifies the indices
+  // into the vertex arrays for each face's vertices.
+
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  // This array defines each face as two triangles, using the
+  // indices into the vertex array to specify each triangle's
+  // position.
+  const indices = [
+    0, 1, 2, 0, 2, 3, // front
+    4, 5, 6, 4, 6, 7, // back
+    8, 9, 10, 8, 10, 11, // top
+    12, 13, 14, 12, 14, 15, // bottom
+    16, 17, 18, 16, 18, 19, // right
+    20, 21, 22, 20, 22, 23, // left
+  ];
+  
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER, 
+    new Uint16Array(indices), 
+    gl.STATIC_DRAW
+  );
+
   return {
     position: positionBuffer,
     color: colorBuffer,
+    indices: indexBuffer,
   };
 }
 
@@ -213,14 +242,35 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   mat4.translate(
     modelViewMatrix, // destination matrix
     modelViewMatrix, // matrix to translate
-    [-0.0, 0.0, -6.0] // amount to translate
-  );
+    [-0.0, 0.0, -6.0]
+  ); // amount to translate
+  /* 3D Cube */
   mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    cubeRotation, // amount to rotate
+    [0, 0, 1]
+  );  // axis to rotate (Z)
+  mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    cubeRotation * 0.7, // amount to rotate
+    [0, 1, 0]
+  ); // axis to rotate (Y)  
+  mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    cubeRotation * 0.3, // amount to rotate
+    [1, 0, 0]
+  ); // axis to rotate (X)
+  
+  /* 2D Square */
+  /*mat4.rotate(
     modelViewMatrix, // destination matrix
     modelViewMatrix, // matrix to rotate
     squareRotation, // amount to rotate in radians
     [0, 0, 1] // axis to rotate
-  );
+  );*/
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
@@ -240,8 +290,7 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
       stride,
       offset
     );
-    gl.enableVertexAttribArray(
-      programInfo.attribLocations.vertexPosition);
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
   }
 
   // Tell WebGL how to pull out the colors from the color buffer
@@ -264,7 +313,11 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
     gl.enableVertexAttribArray(
       programInfo.attribLocations.vertexColor);
   }
-  
+
+  /* 3D Cube */
+  // Tell webGL which indices to use to index the vertices
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+
   // Tell WebGL to use our program when drawing
 
   gl.useProgram(programInfo.program);
@@ -283,14 +336,27 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   );
 
   {
+    
+    /* 2D Square */
+    //const vertexCount = 4;
+    
+    /* 3D Cube */
+    const vertexCount = 36;
+    const type = gl.UNSIGNED_SHORT;
+
     const offset = 0;
-    const vertexCount = 4;
-    gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+    /* 2D Square */
+    //gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+    /* 3D Cube */
+    gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
   }
 
   // Update the rotation for the next draw
-
-  squareRotation += deltaTime;
+  
+  /* 3D Cube */
+  cubeRotation += deltaTime
+  /* 2D Square */
+  //squareRotation += deltaTime;
 }
 
 
