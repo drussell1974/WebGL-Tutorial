@@ -10,21 +10,30 @@ function main() {
     }
 
     // Vertex shader program
+    // pulls the appropriate color from the color buffer
 
     const vsSource = `
-        attribute vec4 aVertexPosition;
-        uniform mat4 uModelViewMatrix;
-        uniform mat4 uProjectionMatrix;
-        void main() {
-            gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-        }
-        `;
+      attribute vec4 aVertexPosition;
+      attribute vec4 aVertexColor;
+
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+
+      varying lowp vec4 vColor;
+
+      void main() {
+        gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        vColor = aVertexColor;
+      }
+    `;
         
     const fsSource = `
-        void main() {
-          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-      `;
+      varying lowp vec4 vColor;
+
+      void main(void) {
+        gl_FragColor = vColor;
+      }
+    `;
 
     // Initialize a shader program; this is where all the lighting
     // for the vertices and so forth is established.
@@ -36,23 +45,24 @@ function main() {
     const programInfo = {
         program: shaderProgram,
         attribLocations: {
-        vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+          vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+          vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
         },
         uniformLocations: {
-        projectionMatrix: gl.getUniformLocation(
+          projectionMatrix: gl.getUniformLocation(
             shaderProgram,
             "uProjectionMatrix"
-        ),
-        modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+          ),
+          modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
         },
     };
 
     // Here's where we call the routine that builds all the
     // objects we'll be drawing.
-    initBuffers(gl);
+    const buffers = initBuffers(gl);
 
     // Draw the scene
-    drawScene(gl, programInfo);
+    drawScene(gl, programInfo, buffers);
 }
 
 //
@@ -80,12 +90,29 @@ function initBuffers(gl) {
     // JavaScript array, then use it to fill the current buffer.
 
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    // Now setup the colors from the vertex
+    const colors = [
+      1.0, 1.0, 1.0, 1.0, // white
+      1.0, 0.0, 0.0, 1.0, // red
+      0.0, 1.0, 0.0, 1.0, // green
+      0.0, 0.0, 1.0, 1.0, // blue
+    ]
+
+    const colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+    return {
+      position: positionBuffer,
+      color: colorBuffer,
+    };
 }
 
 //
 // Draw the scene.
 //
-function drawScene(gl, programInfo) {
+function drawScene(gl, programInfo, buffers) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
     gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -133,6 +160,7 @@ function drawScene(gl, programInfo) {
       const normalize = false;
       const stride = 0;
       const offset = 0;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
       gl.vertexAttribPointer(
         programInfo.attribLocations.vertexPosition,
         numComponents,
@@ -141,7 +169,29 @@ function drawScene(gl, programInfo) {
         stride,
         offset
       );
-      gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+      gl.enableVertexAttribArray(
+        programInfo.attribLocations.vertexPosition);
+    }
+  
+    // Tell WebGL how to pull out the colors from the color buffer
+    // into the vertexPosition attribute.
+    {
+      const numComponents = 4;
+      const type = gl.FLOAT;
+      const normalize = false;
+      const stride = 0;
+      const offset = 0;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+      gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexColor,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset
+      );
+      gl.enableVertexAttribArray(
+        programInfo.attribLocations.vertexColor);
     }
   
     // Tell WebGL to use our program when drawing
