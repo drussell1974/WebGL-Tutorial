@@ -27,16 +27,30 @@ function main() {
   /* Textures */
   const vsSource = `
     attribute vec4 aVertexPosition;
+    attribute vec3 aVertexNormal;
     attribute vec2 aTextureCoord;
   
+    uniform mat4 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
   
     varying highp vec2 vTextureCoord;
+    varying highp vec3 vLighting;
   
     void main(void) {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
       vTextureCoord = aTextureCoord;
+
+      // Apply lighting effect
+      
+      highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+      highp vec3 directionalLightColor = vec3(1, 1, 1);
+      highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+
+      highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+      highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+      vLighting = ambientLight + (directionalLightColor * directional);
   }
 `;
 
@@ -48,11 +62,14 @@ function main() {
   
   const fsSource = `
     varying highp vec2 vTextureCoord;
-
+    varying highp vec3 vLighting;
+  
     uniform sampler2D uSampler;
-
+  
     void main(void) {
-      gl_FragColor = texture2D(uSampler, vTextureCoord);
+      highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+    
+      gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
     }
   `;
 
@@ -69,6 +86,9 @@ function main() {
         vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
         /* Colored faces */
         //vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
+        /* Lighting */
+        vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
+        /* Textures */
         textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
       },
       uniformLocations: {
@@ -77,6 +97,8 @@ function main() {
           "uProjectionMatrix"
         ),
         modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+        /* Lighting */
+        normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
         uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
       },
   };
@@ -95,7 +117,7 @@ function main() {
   // rendered, we need to make the following call, to cause the pixels to
   // be flipped into the bottom-to-top order that WebGL expects.
   // See jameshfisher.com/2020/10/22/why-is-my-webgl-texture-upside-down
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   
   let then = 0;
 
@@ -137,28 +159,10 @@ function initBuffers(gl) {
   // Now create an array of positions for the square.
 
   /* 2D Square */
-  //const positions = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
+  //const positions = get2DSquarePositions();
   
   /* 3D Cube */
-  const positions = [
-    // Front face
-    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
-
-    // Back face
-    -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
-
-    // Top face
-    -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
-
-    // Bottom face
-    -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
-
-    // Right face
-    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
-
-    // Left face
-    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
-  ];
+  const positions = get3DCubePositions();
   
   // Now pass the list of positions into WebGL to build the
   // shape. We do this by creating a Float32Array from the
@@ -172,7 +176,7 @@ function initBuffers(gl) {
 
   const normalBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-
+  
   const vertexNormals = getVertexNormals();
 
   gl.bufferData(
@@ -183,6 +187,8 @@ function initBuffers(gl) {
 
   /* Textures */
   
+  // Now set up the texture coordinates for the faces
+
   const textureCoordBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
   
@@ -208,14 +214,7 @@ function initBuffers(gl) {
   // This array defines each face as two triangles, using the
   // indices into the vertex array to specify each triangle's
   // position.
-  const indices = [
-    0, 1, 2, 0, 2, 3, // front
-    4, 5, 6, 4, 6, 7, // back
-    8, 9, 10, 8, 10, 11, // top
-    12, 13, 14, 12, 14, 15, // bottom
-    16, 17, 18, 16, 18, 19, // right
-    20, 21, 22, 20, 22, 23, // left
-  ];
+  const indices = getIndicesForEachTrainglesPosition();
   
   gl.bufferData(
     gl.ELEMENT_ARRAY_BUFFER, 
@@ -225,14 +224,77 @@ function initBuffers(gl) {
 
   return {
     position: positionBuffer,
-    //color: colorBuffer,
+    /* Lighting */
+    normal: normalBuffer,
+    /* Textures */
     textureCoord: textureCoordBuffer,
+    //color: colorBuffer,
     indices: indexBuffer,
   };
 }
 
+//
+// create array of positions for the square
+//
+function get2DSquarePositions() {
+  // create array of positions for the square
 
+  return [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
+}
+
+//
+// This array defines each face as two triangles, using the
+// indices into the vertex array to specify each triangle's
+// position.
+//
+function getIndicesForEachTrainglesPosition() {
+  // This array defines each face as two triangles, using the
+  // indices into the vertex array to specify each triangle's
+  // position.
+
+  return [
+    0, 1, 2, 0, 2, 3,
+    4, 5, 6, 4, 6, 7,
+    8, 9, 10, 8, 10, 11,
+    12, 13, 14, 12, 14, 15,
+    16, 17, 18, 16, 18, 19,
+    20, 21, 22, 20, 22, 23,
+  ]
+};
+
+//
+// create array of positions for the cube
+//
+function get3DCubePositions() {
+  // create array of positions for the cube
+  
+  return [
+    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+
+    // Back face
+    -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
+
+    // Top face
+    -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
+
+    // Bottom face
+    -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
+
+    // Right face
+    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
+
+    // Left face
+    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
+  ];
+}
+
+//
+// create array of positions for the VertexNorals
+// 
 function getVertexNormals() {
+  /* Lighting */
+  // create array of positions for the VertexNorals
+  
   return [
     0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
 
@@ -253,7 +315,13 @@ function getVertexNormals() {
   ];
 }
 
+//
+// create array of positions for the Textures
+// 
 function getTextureCoordinatesArray() {
+  /* Textures */
+  // create array of positions for the Textures
+  
   return [
     0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
     // Back
