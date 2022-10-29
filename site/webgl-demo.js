@@ -3,7 +3,7 @@
 /* 2D Square */
 let cubeRotation = 0.0;
 
-let colorBuffer;
+//let colorBuffer;
 
 function main() {
   const canvas = document.querySelector("#glCanvas");
@@ -17,28 +17,37 @@ function main() {
   }
 
   // Vertex shader program
-  // pulls the appropriate color from the color buffer
 
+  // pulls the appropriate color from the color buffer
+  /* Colors */
+  // attribute vec4 aVertexColor
+  // varying lowp vec4 vColor vTextureCoord;
+  // vColor = aVertexColor;
+      
+  /* Textures */
   const vsSource = `
     attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor aTextureCoord;
-
+    attribute vec2 aTextureCoord;
+  
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
-
-    varying lowp vec4 vColor vTextureCoord;
-
+  
+    varying highp vec2 vTextureCoord;
+  
     void main(void) {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vColor = aVertexColor;
       vTextureCoord = aTextureCoord;
-    }
-  `;
-     
+  }
+`;
+
+  // Fragment shader program
+
   /* Too use color faces */
+  // varying lowp vec4 vColor;
   // gl_FragColor =  vColor; 
+  
   const fsSource = `
-    varying lowp vec4 vColor vTextureCoord;
+    varying highp vec2 vTextureCoord;
 
     uniform sampler2D uSampler;
 
@@ -58,7 +67,8 @@ function main() {
       program: shaderProgram,
       attribLocations: {
         vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
-        vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
+        /* Colored faces */
+        //vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
         textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
       },
       uniformLocations: {
@@ -97,7 +107,7 @@ function main() {
     
     // Draw the scene
 
-    drawScene(gl, programInfo, buffers, deltaTime);
+    drawScene(gl, programInfo, buffers, texture, deltaTime);
 
     requestAnimationFrame(render);
   }
@@ -200,7 +210,7 @@ function initBuffers(gl) {
 
   return {
     position: positionBuffer,
-    color: colorBuffer,
+    //color: colorBuffer,
     textureCoord: textureCoordBuffer,
     indices: indexBuffer,
   };
@@ -315,7 +325,7 @@ function isPowerOf2(value) {
 //
 // Draw the scene.
 //
-function drawScene(gl, programInfo, buffers, deltaTime) {
+function drawScene(gl, programInfo, buffers, texture, deltaTime) {
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
   gl.clearDepth(1.0); // Clear everything
   gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -354,33 +364,12 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
     modelViewMatrix, // matrix to translate
     [-0.0, 0.0, -6.0]
   ); // amount to translate
+
   /* 3D Cube */
-  mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    cubeRotation, // amount to rotate
-    [0, 0, 1]
-  );  // axis to rotate (Z)
-  mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    cubeRotation * 0.7, // amount to rotate
-    [0, 1, 0]
-  ); // axis to rotate (Y)  
-  mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    cubeRotation * 0.3, // amount to rotate
-    [1, 0, 0]
-  ); // axis to rotate (X)
+  rotate3DCube(modelViewMatrix);
   
   /* 2D Square */
-  /*mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    squareRotation, // amount to rotate in radians
-    [0, 0, 1] // axis to rotate
-  );*/
+  //rotate2DSquare(modelViewMatrix);
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
@@ -405,24 +394,15 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 
   // Tell WebGL how to pull out the colors from the color buffer
   // into the vertexPosition attribute.
+  //{
+  //  pullColorsFromBuffer(gl, buffers, programInfo);
+  //}
+
+  // Tell WebGL how to pull out the texture coordinates from the buffer
   {
-    const numComponents = 4;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
-    gl.vertexAttribPointer(
-      programInfo.attribLocations.vertexColor,
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset
-    );
-    gl.enableVertexAttribArray(
-      programInfo.attribLocations.vertexColor);
+    pullTextureCoordinatesFromBuffer(gl, buffers, programInfo);
   }
+
 
   /* 3D Cube */
   // Tell webGL which indices to use to index the vertices
@@ -445,8 +425,16 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
     modelViewMatrix
   );
 
+  // Tell WebGL we want to affect the texture unit 0
+  gl.activeTexture(gl.TEXTURE0);
+
+  // Bind the texture to texture unit 0
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  
+  // Tell the shader we bound the texture to texture unit 0
+  gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+
   {
-    
     /* 2D Square */
     //const vertexCount = 4;
     
@@ -469,6 +457,71 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   //squareRotation += deltaTime;
 }
 
+//
+// Tell WebGL how to pull out the texture coordinates from the buffer
+//
+function pullTextureCoordinatesFromBuffer(gl, buffers, programInfo) {
+  const numComponents = 2; // every coordinate composed of 2 values
+  const type = gl.FLOAT; // the data in the buffer is 32-bit float
+  const normalize = false; // don't normalise
+  const stride = 0; // how many bytes to get from one set to the next
+  const offset = 0; // how many bytes inside the buffer to start from
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
+  gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, numComponents, type, normalize, stride, offset);
+  gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+}
+
+//
+// Tell WebGL how to pull out the colors from the color buffer
+//
+function pullColorsFromBuffer(gl, buffers, programInfo) {
+  const numComponents = 4;
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = 0;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+  gl.vertexAttribPointer(
+    programInfo.attribLocations.vertexColor,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset
+  );
+  gl.enableVertexAttribArray(
+    programInfo.attribLocations.vertexColor);
+}
+
+function rotate2DSquare(modelViewMatrix) {
+  mat4.rotate(
+    modelViewMatrix,
+    modelViewMatrix,
+    squareRotation,
+    [0, 0, 1]
+  );
+}
+
+function rotate3DCube(modelViewMatrix) {
+  mat4.rotate(
+    modelViewMatrix,
+    modelViewMatrix,
+    cubeRotation,
+    [0, 0, 1]
+  ); // axis to rotate (Z)
+  mat4.rotate(
+    modelViewMatrix,
+    modelViewMatrix,
+    cubeRotation * 0.7,
+    [0, 1, 0]
+  ); // axis to rotate (Y)  
+  mat4.rotate(
+    modelViewMatrix,
+    modelViewMatrix,
+    cubeRotation * 0.3,
+    [1, 0, 0]
+  ); // axis to rotate (X)
+}
 
 //
 // Initialize a shader program, so WebGL knows how to draw our data
@@ -521,3 +574,7 @@ function loadShader(gl, type, source) {
 }
 
 window.onload = main;
+
+/* Work arounds */
+// Textures requires the code on a secure webserver
+// https://developer.mozilla.org/en-US/docs/Learn/Common_questions/set_up_a_local_testing_server 
