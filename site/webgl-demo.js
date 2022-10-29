@@ -166,6 +166,21 @@ function initBuffers(gl) {
 
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
+  /* Lighting */
+
+  // Set up the normals for the vertices, so that we can compute lighting.
+
+  const normalBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+
+  const vertexNormals = getVertexNormals();
+
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array(vertexNormals),
+    gl.STATIC_DRAW
+  );
+
   /* Textures */
   
   const textureCoordBuffer = gl.createBuffer();
@@ -216,6 +231,27 @@ function initBuffers(gl) {
   };
 }
 
+
+function getVertexNormals() {
+  return [
+    0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+
+    // Back
+    0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+
+    // Top
+    0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+
+    // Bottom
+    0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
+
+    // Right
+    1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+
+    // Left
+    -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+  ];
+}
 
 function getTextureCoordinatesArray() {
   return [
@@ -367,7 +403,13 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
 
   /* 3D Cube */
   rotate3DCube(modelViewMatrix);
+
+  /* Lighting */
   
+  const normalMatrix = mat4.create();
+  mat4.invert(normalMatrix, modelViewMatrix);
+  mat4.transpose(normalMatrix, normalMatrix);
+
   /* 2D Square */
   //rotate2DSquare(modelViewMatrix);
 
@@ -375,21 +417,7 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
   // buffer into the vertexPosition attribute.
   // For 3D object change numCompontents from 2 to 3
   {
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-    gl.vertexAttribPointer(
-      programInfo.attribLocations.vertexPosition,
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset
-    );
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    pullPositionsFromBuffer(gl, buffers, programInfo);
   }
 
   // Tell WebGL how to pull out the colors from the color buffer
@@ -403,6 +431,11 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
     pullTextureCoordinatesFromBuffer(gl, buffers, programInfo);
   }
 
+  // Tell WebGL how to pull out the normals from
+  // the normal buffer into the vertexNormal attribute.
+  {
+    pullNormalsFromBuffer(gl, buffers, programInfo);
+  }
 
   /* 3D Cube */
   // Tell webGL which indices to use to index the vertices
@@ -423,6 +456,12 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
     programInfo.uniformLocations.modelViewMatrix,
     false,
     modelViewMatrix
+  );
+  /* Lighting */
+  gl.uniformMatrix4fv(
+    programInfo.uniformLocations.normalMatrix,
+    false,
+    normalMatrix
   );
 
   // Tell WebGL we want to affect the texture unit 0
@@ -455,6 +494,51 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
   cubeRotation += deltaTime
   /* 2D Square */
   //squareRotation += deltaTime;
+}
+
+//
+// Tell WebGL how to pull out the positions from the position
+// buffer into the vertexPosition attribute.
+// For 3D object change numCompontents from 2 to 3
+//
+function pullPositionsFromBuffer(gl, buffers, programInfo) {
+  const numComponents = 3;
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = 0;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+  gl.vertexAttribPointer(
+    programInfo.attribLocations.vertexPosition,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset
+  );
+  gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
+//
+// Tell WebGL how to pull out the normals from
+// the normal buffer into the vertexNormal attribute.
+//  
+function pullNormalsFromBuffer(gl, buffers, programInfo) {
+  const numComponents = 3; 
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = 0;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+  gl.vertexAttribPointer(
+    programInfo.attribLocations.vertexNormal,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset
+  );
+  gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
 }
 
 //
