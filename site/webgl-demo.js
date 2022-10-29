@@ -3,6 +3,8 @@
 /* 2D Square */
 let cubeRotation = 0.0;
 
+let colorBuffer;
+
 function main() {
   const canvas = document.querySelector("#glCanvas");
   // Initialize the GL context
@@ -66,6 +68,7 @@ function main() {
   // objects we'll be drawing.
   const buffers = initBuffers(gl);
 
+  /* loading textures*/
   const texture = loadTexture(gl, "cubetexture.png");
 
   // Browsers copy pixels from the loaded image in top-to-bottom order —
@@ -146,39 +149,22 @@ function initBuffers(gl) {
 
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-  /* 2D Square colours 
-  // Now setup the colors from the vertex
-  const colors = [
-    1.0, 1.0, 1.0, 1.0, // white
-    1.0, 0.0, 0.0, 1.0, // red
-    0.0, 1.0, 0.0, 1.0, // green
-    0.0, 0.0, 1.0, 1.0, // blue
-  ] */
+  /* Textures */
   
-  // Now set up the colours for the faces
+  const textureCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+  
+  const textureCoordinates = getTextureCoordinatesArray();
 
-  /* 3D Cube colors */
-  // Create an array for all colors
-  const faceColors = [
-    [1.0, 1.0, 1.0, 1.0], // Front face: white
-    [1.0, 0.0, 0.0, 1.0], // Back face: red
-    [0.0, 1.0, 0.0, 1.0], // Top face: green
-    [0.0, 0.0, 1.0, 1.0], // Bottom face: blue
-    [1.0, 1.0, 0.0, 1.0], // Right face: yellow
-    [1.0, 0.0, 1.0, 1.0], // Left face: purple
-  ];
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+                gl.STATIC_DRAW);
 
-  var colors = [];
+  // Now setup the colors from the vertex
+  //const colors = get3DColorArray() || get2DColorArray();
 
-  for (var j = 0; j < faceColors.length; j++) {
-    const c = faceColors[j];
-    // Repeat each color four times for the four vertices of the face
-    colors = colors.concat(c,c,c,c);
-  }
-
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+  //const colorBuffer = gl.createBuffer();
+  //gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  //gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
   /* 3D Cube */
   // Build the element array buffer; this specifies the indices
@@ -208,10 +194,62 @@ function initBuffers(gl) {
   return {
     position: positionBuffer,
     color: colorBuffer,
+    textureCoord: textureCoordBuffer,
     indices: indexBuffer,
   };
 }
 
+
+function getTextureCoordinatesArray() {
+  return [
+    0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+    // Back
+    0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+    // Top
+    0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+    // Bottom
+    0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+    // Right
+    0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+    // Left
+    0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+  ];
+}
+
+function get3DColorArray(colors) {
+  // Now set up the colours for the faces
+
+  /* 3D Cube colors */
+  // Create an array for all colors
+  
+  const faceColors = [
+    [1.0, 1.0, 1.0, 1.0],
+    [1.0, 0.0, 0.0, 1.0],
+    [0.0, 1.0, 0.0, 1.0],
+    [0.0, 0.0, 1.0, 1.0],
+    [1.0, 1.0, 0.0, 1.0],
+    [1.0, 0.0, 1.0, 1.0], // Left face: purple
+  ];
+
+  for (var j = 0; j < faceColors.length; j++) {
+    const c = faceColors[j];
+    // Repeat each color four times for the four vertices of the face
+    colors = colors.concat(c, c, c, c);
+  }
+  return colors;
+}
+
+function get2DColorArray() {
+  
+  return [
+    1.0, 1.0, 1.0, 1.0,
+    1.0, 0.0, 0.0, 1.0,
+    0.0, 1.0, 0.0, 1.0,
+    0.0, 0.0, 1.0, 1.0,
+  ];
+}
+
+/* loading textures*/
 //
 // Initialize a texture and load an image.
 // When the image finished loading copy it into the texture.
