@@ -67,7 +67,7 @@ function main() {
           "uProjectionMatrix"
         ),
         modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
-        uSampler: gl.getUniformLocation(shaderProgram, 'uSampler');
+        uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
       },
   };
 
