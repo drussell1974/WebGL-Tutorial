@@ -30,3 +30,10 @@ Getting Started with WebGL
 
     https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL
 
+5. Using textures in WebGL
+
+    Map a texture onto it instead of having its faces be solid colors.
+
+    Uses the glMatrix library to perform its matrix and vertex math. You'll need to include it if you create your own project based on this code. Our sample loads a copy from a CDN in our HTML's <head>.
+    
+    https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
