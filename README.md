@@ -37,3 +37,13 @@ Getting Started with WebGL
     Uses the glMatrix library to perform its matrix and vertex math. You'll need to include it if you create your own project based on this code. Our sample loads a copy from a CDN in our HTML's <head>.
     
     https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
+
+6. Lighting in WebGL
+
+    Ambient light is the light that permeates the scene; it's non-directional and affects every face in the scene equally, regardless of which direction it's facing.
+
+    Directional light is light that is emitted from a specific direction. This is light that's coming from so far away that every photon is moving parallel to every other photon. Sunlight, for example, is considered directional light.
+
+    Point light is light that is being emitted from a point, radiating in all directions. This is how many real-world light sources usually work. A light bulb emits light in all directions, for example.
+
+    https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Lighting_in_WebGL
