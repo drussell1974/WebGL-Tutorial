@@ -576,5 +576,9 @@ function loadShader(gl, type, source) {
 window.onload = main;
 
 /* Work arounds */
-// Textures requires the code on a secure webserver
+
+// 1. Using CORS to load WebGL textures from cross-domain images
+// https://hacks.mozilla.org/2011/11/using-cors-to-load-webgl-textures-from-cross-domain-images/
+
+// 2. Textures requires the code on a secure webserver
 // https://developer.mozilla.org/en-US/docs/Learn/Common_questions/set_up_a_local_testing_server 
